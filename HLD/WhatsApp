@@ -1,0 +1,33 @@
+Functional Requirements
+- One-on-One Chat: Users can send and receive messages in real-time with other users.
+- up Chat: Users can create groups and send messages to multiple recipients (up to 500 members).
+- Message Delivery Status: Users can see delivery receipts (sent, delivered, read).
+- Online Presence: Users can see if their contacts are online, offline, or their last seen time.
+- Message History: Users can access their message history and sync across multiple devices.
+- Push Notifications: Offline users receive push notifications for new messages.
+
+Non-Functional Requirements
+- Low Latency: Messages should be delivered within milliseconds for online users. Target: p99 < 100ms for delivery when the recipient is online.
+- High Availability: The system must be highly available (99.99% uptime). Users expect messaging to work 24/7.
+- Reliability: Messages must never be lost. Once sent, a message should eventually be delivered, even if the recipient is offline.
+- Scalability: Support 500M+ daily active users and 20B+ messages per day.
+- Ordering: Messages within a conversation should appear in the correct order.
+- Consistency: Eventually consistent for presence. Message delivery is at-least-once with no duplicates, and messages within a conversation are ordered.
+
+
+== STEP 2: Capacity Estimation ==
+
+Active users Daily: 500M
+Messages per user per day: 40
+Average message size: 100bytes
+Total data per day: 20TB
+Average group size: 20 members
+
+
+QPS : 500M * 40 / 86400 = 23148 = 24k
+Peak Load : festivals and all = 24k * 3 = 72k
+
+
+Storage:
+500M * 40 * 100bytes ~ 200GB per day
+500M * 40 * 100bytes * 365 ~ 73TB per year

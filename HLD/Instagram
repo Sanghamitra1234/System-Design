@@ -1,0 +1,39 @@
+Functional Requirements
+    Users can upload photos and videos.
+    Users can add captions to their posts.
+    Users can follow/unfollow other users.
+    Users can like, share, and comment on posts.
+    Support for multiple images/videos in a single post (carousel).
+    Users can view a personalized feed consisting of posts from accounts they follow.
+    Users can search by username and hashtag.
+Out of Scope
+    Direct messaging.
+    Short-form video content (Reels).
+    Push Notifications for likes, comments, and follows.
+Non Functional Requirements
+    Low Latency: The feed should load fast (~100ms).
+    High Availability: The system should be available 24/7 with minimal downtime.
+    Eventual Consistency: A slight delay in users seeing the latest posts from accounts they follow is acceptable.
+    High Scalability: Handle millions of concurrent users and billions of posts.
+    High Durability: The uploaded photos/videos shouldn’t be lost.
+
+
+    ===== Capacity estimation =====
+    Daily Active Users (DAUs): → 500 million users/day
+    Estimating Read & Write Requests: 
+    1) Write Requests: 
+        - Average posts per user per day: 2
+        - Total write requests: 500M * 2 = 1 billion requests/day
+
+    2) Feed Reads
+        Assume an average user scrolls through 100 posts per session
+        - Total read requests: 500M * 100 = 50 billion requests/day
+        - Assuming 80% read are from cache, backend reads = 10B DB reads/day
+
+
+===== High Level Design ======
+
+
+client -> Load Balancer -> Application Layer -> Database
+
+CDN  Client

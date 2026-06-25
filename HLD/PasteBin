@@ -1,0 +1,428 @@
+== STEP 1: Clarifying Questions ==
+
+Functional Requirements:
+1) Do users need to login to use our application ?
+   -> No, login is optional. Anonymous pastes allowed. Logged-in users can manage/delete their pastes.
+
+2) Is there any expiration time for a paste ?
+   -> Yes. Users can set: 1 hour, 1 day, 1 week, 1 month, or never (default: never).
+
+3) What is the max size of a paste ?
+   -> 1 MB of plain text.
+
+4) Are custom URLs allowed ?
+   -> Nice to have, not required for v1.
+
+5) Do we need analytics (e.g. view count) ?
+   -> Basic analytics — just view count per paste.
+
+Non-Functional Requirements:
+6) How many active users are we expecting in a day ?
+   -> ~1 million DAU. ~5 million paste writes/day, ~25 million reads/day.
+
+7) What is the read to write ratio ?
+   -> 5:1 — system is read-heavy.
+
+8) Should the system be globally available ?
+   -> Yes, global users — low latency reads (~100ms) are important.
+
+9) What are the availability and durability expectations ?
+   -> High availability (reads must never go down). No data loss (durable storage).
+
+
+== STEP 2: Capacity Estimation ==
+
+Write QPS (new pastes):
+5,000,000 writes/day / (24 * 3600) = 5,000,000 / 86,400 = ~58 QPS
+[Note: used 5M writes/day not 1M DAU — not every user writes a paste every day]
+
+Read QPS:
+25,000,000 reads/day / (24 * 3600) = 25,000,000 / 86,400 = ~290 QPS
+
+
+Storage per paste (use AVERAGE size, not max):
+userId   : 8 bytes
+content  : ~10 KB avg  [Correction: max is 1 MB but avg snippet is small; always use avg]
+metadata : ~500 bytes (paste_id, expiry, created_at, title, etc.)
+Total    : ~10.5 KB per paste ≈ ~10 KB
+
+1 year storage:
+10 KB * 5,000,000 writes/day * 365 days = ~18.25 TB/year
+
+5 year storage:
+18.25 TB * 5 = ~91.25 TB
+
+
+== STEP 3: API Design ==
+
+1) post/pastebin
+Req Body: {
+    "title": "string",
+    "content": "string",
+    "expiry": "date_time"
+}
+Response: {
+    "paste_id": "string",
+    "unique_paste_url": "string",
+    "expiry": "date_time"
+}
+
+200 - sucess
+
+2) get/pastebin/paste_id
+Req Params: {
+    "paste_id": "string",
+}
+Response: {
+    "title": "string",
+    "content": "string",
+    "expiry": "date_time",
+    "author": "string",
+    "created_at": "date_time"
+}
+200 - success
+500 - ISE   
+404 - paste not found
+410 - paste expired
+
+
+3) delete/pastebin/paste_id
+Authentication_token
+
+Response: {
+    "paste_id": "string",
+    "status": "deleted"
+}
+
+200 - sucess
+403 - Forbidden
+
+== Step 4: High-Level Architecture ==
+
+Client  -> CDN -> LoadBalancer  ->     (Application Layer) ->   Redis      -> DataBase
+                                        PasteBin Service                    Metadata (user_id, paste_id, expiry, created_at)        
+                                        Key Generation Service              Content (paste_id, content) ()
+
+Scheduled Job (Run once a day)
+- Cleanup expired pastes
+- Archive old pastes
+
+Flow:
+Client - sends request to CDN
+If data is in CDN return the reesponse from there for reads, for post, go to loadbalancer
+Else
+CDN - forwards to LoadBalancer
+LoadBalancer - distributes request to Application Layer (acts as a rate limitter also)
+Application Layer - processes request
+PasteBinService - generates paste_id, checks if paste is expired, returns content
+Redis - key (paste_bin, content) with TTL : 24 hours If not there, interrats with database, write back to redis (cache-aside pattern)
+DataBase - metadata - is a noemal DataBas
+cONTENT is a storage database (S3, GCS) - MORE HElpful than storing blobs in relation database, faster
+
+
+ === Step 5: Deep Dives ===
+
+ 1) database
+    SQL/NO SQL
+    ----------
+    1) Metadata DB - has a fixed  rigid structure
+    - structure doesnt change over time
+    - queries on this table first always (complex joins or quesries in future)
+    So going forward with SQL
+    index : paste_id, expiry_date
+    primary_key: paste_id
+
+    (title: varchar(255) ,
+    user_id: varchar(255)(FK Point to Users table) 
+    paste_id: varchar(6) (NOT NULL) (Point to S3) 
+    expiry_date: date_time,
+     s3_url: varchar(255
+    created_at: date_time(NOT NULL),)
+
+Content DB
+- storage heavy
+- relation database BLOB will need expontential inceease in future
+- using S3/GCS for storage 
+- object storage kind of database
+
+
+2) Unique Key Generation
+    1) UUID 
+        - less chance of collision
+        - unique ID always
+        - ll be random and nonsequential
+        - but is very long in length (32 chars), we need something small
+
+    2) Auto increment (with some fixed length)
+        - use a counter to generate unique IDs
+        - but is very long in length, we need something small
+        - in case 2 servers are there, collision will happen when they are trying to write
+        - can be useful if the application is small overall
+
+    3) Hashing + Encoding (Deterministic)
+     - Create a hash using SHA-256, MD5 etc and encode it to base62 or base36
+     - encoding will reduce the length of the hash
+     - In case collision happen - add some salt then rehash again
+     - difficult to decipher the next
+
+    4) KGS (Pre-generated Keys)
+   - Pre-generate millions of random Base62 keys offline
+   - Store in a DB: unused_keys table + used_keys table
+   - On paste creation, app calls KGS → gets a key → marks it used
+   - No collision possible (key is claimed before use)
+   - Fast (no hashing at request time)
+   - Downside: KGS is a SPOF → mitigate with 2 KGS instances + each caches a batch of keys in memory
+
+   Will choose 4 for our usecase
+
+
+===========================
+PASTEBIN HLD - REVIEW NOTES
+===========================
+
+1. SQL vs NoSQL
+----------------
+Current Choice:
+- SQL for metadata
+
+Questions:
+- Why SQL over DynamoDB/Cassandra/MongoDB?
+ - as the data base has rigid structure , wont change over time, requires Consistency so choosing postGres or MYSQL makes sense
+- What query patterns benefit from SQL?
+ - as we have indexed on few columns, querying for user -pastesin or to check the ones expired
+- Do we need joins today?
+ - Currently no, in furure we might I feel
+
+Think About:
+- Indexing
+- Query flexibility
+- Consistency requirements
+
+
+2. View Count at Scale
+----------------------
+Scenario:
+- Paste receives 100M views/day
+
+Questions:
+- Can I update DB for every read?
+ - We can but that ll be expensive for us to update a DB row on each read
+- Will a hot row problem occur?
+    - Yes it ll occur
+- How should view counts be tracked?
+We can use something async (As Consistency in the number can be compromised, that is like a side feature for us, if user see 
+a older count it wont affect the user experience like there wont be a broken experience)
+We can either make user of 
+ - Batch Update that after this much read we can update the Database
+ - Kafka event (which takes the read event and eventually update in database, it is proven and used by many)
+
+Possible Solutions:
+- Redis Counter
+- Kafka Events
+- Batch Updates
+- Async Aggregation
+
+
+3. Redis Failure
+----------------
+Current Flow:
+Client
+↓
+Redis
+↓
+DB
+
+Questions:
+- What happens if Redis crashes?
+    - iF Redis crashes, we will directly go to the DB
+- Can users still read pastes?
+    - Yes, we will directly go to the DB
+- Can users still create pastes?
+    - Yes, creation was never updating the redis cache, it was read operation as we are a read heavy system
+- How will cache recover?
+    - We will repopulate the cache from the DB
+
+Expected Thought Process:
+Cache Down
+↓
+DB Lookup
+↓
+Serve Response
+↓
+Repopulate Cache
+
+
+4. S3 Content Lookup
+--------------------
+Current Design:
+Metadata -> SQL
+Content -> S3
+
+Questions:
+- How do I locate content?
+we can store s3_url in the metadata table,
+In content we will have the paste_id and content
+- Do I store:
+  paste_id -> content
+  OR
+  paste_id -> s3_url
+
+Where should mapping live?
+- Metadata DB? Yes
+
+
+5. CDN Usage
+------------
+Current Design:
+Client
+↓
+CDN
+↓
+Load Balancer
+
+Questions:
+- What exactly is cached?
+We are cahcing paste_id , JSON{metadata, content}
+- Are pastes cacheable?
+Yes
+- Is CDN needed in V1?
+No
+- Which requests benefit from CDN?
+- Read request, on write request we are redirecting the request to Load balancer
+
+
+6. Expiry Handling
+------------------
+Current Design:
+Cleanup Job runs once/day
+
+Problem:
+Paste expires at 10:01 AM
+Cleanup runs at midnight
+
+Questions:
+- Should expired paste remain visible?
+No, for this we should query and check the expiry timestamp, while fetching the paste
+- How do we block access immediately?
+Add a check in application level paste bin service
+
+Better Approach:
+Read Request
+↓
+Check Expiry Timestamp
+↓
+If expired -> 410 Gone
+
+Cleanup Job:
+Only reclaims storage
+
+
+7. Key Generation Tradeoff
+--------------------------
+Current Choice:
+KGS (Key Generation Service)
+
+Questions:
+- Is KGS needed for only 58 writes/sec?
+- Is it solving a real scaling problem?
+- Can simpler solutions work?
+
+Alternatives:
+- Snowflake + Base62
+- Auto Increment + Base62
+- Hash + Base62
+
+Rule:
+Prefer simpler solutions until scale demands complexity.
+
+
+8. Failure Analysis
+-------------------
+Questions:
+What happens if:
+
+- Redis fails?
+- S3 fails?
+- Metadata DB fails?
+- Load Balancer fails?
+- PasteBin Service fails?
+
+Component       Read        Write       recovery
+Redis           treat cache hit         Lazy cache
+S3              Partial     Yes         Retry with exponential backoff
+Metadata DB     Yes         Yes         Read check the slave DB, write is fail fast 
+Load Balancer   No          No          Multi-AZ LB deployment + DNS failover
+PasteBin Service Yes        Yes         Restart service, service is staless, 
+                                        if service is down, serve a new healthy instance
+
+For each:
+- Can reads continue?
+- Can writes continue?
+- How does recovery happen?
+
+
+9. Cache Strategy
+-----------------
+Current Design:
+Redis
+key = paste_id
+value = content
+TTL = 24 hours
+
+Questions:
+- Why 24 hours? I am guessing when we are pasting, it is shared among the users in the first day, so the traffic for a new paste is more than older pastes
+- What if paste expires in 1 hour? That ll create a lot of cache hit
+- Can stale content be served? No, we cant serve stale content, after write we can check if the paste is expired or not (As uodate is not allowed so we cant update the paste bin after its created)
+- Should cache TTL depend on expiry time? No, we can have a fixed TTL for all the pastes
+
+
+10. Peak Traffic Analysis
+-------------------------
+Current Estimate:
+5M Writes/day
+25M Reads/day
+
+Questions:
+- What if traffic spikes 10x?
+- What is peak QPS? almost thrice of normal avg QPS
+- Can Redis handle it? Yes
+- Can DB handle it? We will have master slave architecture, primary DB for write, slaves will get a copy of master for the reads
+- Do we need autoscaling? Yes in future we might need 
+
+
+===========================
+MOST IMPORTANT QUESTIONS
+===========================
+
+1. Why SQL instead of NoSQL?
+2. How would you design View Count?
+3. What happens if Redis crashes?
+4. How does S3 content lookup work?
+5. How should expiry handling work?
+6. Why KGS over Snowflake/Base62?
+7. What happens when each component fails?
+
+===========================
+HLD LEARNING RULE
+===========================
+
+For every component ask:
+
+1. What problem is this solving?
+2. What happens if it fails?
+3. Is there a simpler solution?
+4. What tradeoff am I accepting?
+
+Example:
+
+Redis
+Problem Solved:
+- Reduce DB load
+- Lower latency
+
+Failure:
+- Requests hit DB directly
+
+Tradeoff:
+- Possible stale data
+- Extra infrastructure
