@@ -1,0 +1,95 @@
+1.1 Functional Requirements
+Authenticate users via card number and PIN
+Support three transaction types: withdrawal, deposit, and balance inquiry
+Dispense cash using the largest denominations first ($100, $50, $20, $10)
+Validate both account balance and ATM cash inventory before dispensing
+Track ATM state transitions (idle, card inserted, authenticated)
+Simulate bank operations (authentication, balance check, debit, credit) via an in-memory service
+
+1.2 Non-Functional Requirements
+The design should follow object-oriented principles with clear separation of concerns
+The system should be modular and extensible to support new transaction types and denominations
+The code should be thread-safe for concurrent access
+The components should be testable in isolation
+Financial operations should follow validation-before-commit: always verify dispensability before debiting
+
+
+
+ATMMachine
+HashMap<denomination, int> cash
+BankService bankService
+currentState
+
+
+insertCard(card)
+ejectCard()
+deposit(amount)
+withdraw(amount)
+checkBalance()
+
+
+Bankservice
+-authenticateUser(card, pin)
+-getAccountBalance(card)
+-debit(card, amount)
+-credit(card, amount)
+
+
+card
+-number
+-pin
+-cvv
+
+account
+-user
+-balance
+-number
+-card
+
+
+user
+-name
+-account
+
+
+transactionType
+-deposit
+-withdrawal
+-balanceInquiry
+
+
+transactionStatus
+-success
+-failure
+
+
+transaction
+-id
+-transactionType
+-transactionStatus
+-amount
+-date
+
+
+enum denomination
+100
+50
+20
+10
+
+
+
+state
+-idle
+-cardInserted
+-authenticated
+
+
+
+idle -> cardInserted -> authenticated -> transaction -> idle
+             |>
+             not authenticated
+             -> idle
+
+
+

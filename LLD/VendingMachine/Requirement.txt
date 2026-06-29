@@ -1,0 +1,69 @@
+1.1 Functional Requirements
+Accept coin-based payments using fixed denominations (e.g., $1, $5, $10)
+Allow adding new items or restocking existing items in the vending machine
+Allow users to view available items along with their price
+Users can select an item by entering the item code
+The machine should dispense the selected item if sufficient money is inserted
+Return change if the inserted amount exceeds the item’s price
+Allow users to cancel a transaction before item dispensing and receive a full refund
+Display intermediate states such as inserted amount, selected item, or refund messages
+
+
+
+VendingMachine
+insertCoin(denomination: Denomination)
+selectItem(code: String)
+dispenseItem(code: String)
+returnChange()
+cancelTransaction()
+
+
+transaction
+-amount
+-change
+-item
+
+calculateChange(amount, itemPrice)
+resetTransaction()
+isPaymentSufficient(amount, itemPrice)
+
+
+Inventory
+-Map<code, Item>
+
+
+restock(item, quantity)
+addNewItem(item, quantity)
+isItemAvailable(code)
+updateQunatity(code, quantity)
+
+
+
+VendingMachineStateManager
+-currentState
+
+VendingMachineState
+-INSERT_COIN
+-SELECT_ITEM
+-DISPENSE_ITEM
+-RETURN_CHANGE
+-CANCEL_TRANSACTION
+
+
+Enum Denominations:
+- $1
+- $5
+- $10
+
+Item
+-code
+-name
+-price
+-quantity
+
+
+
+
+
+
+

@@ -1,0 +1,78 @@
+1) multiple floors with fixed parking spots
+2) supports parking of bikes , car and trucks with small, compact and large spots
+3) fixed no of parking spots for each vehicle type
+4) display the no. of parking spots available at that point of time
+5) assign parking spots automatically
+6) give parking ticket to user when he enters with start and then when exit with a end time
+7) charge the fixed amount per hour
+
+
+
+ParkingLot
+-Floor
+-List<Int> availableSpots
+
+park(
+    vehicle: Vehicle,
+    startTime: LocalDateTime,
+    endTime: LocalDateTime
+)
+
+
+unpark(
+    vehicle: Vehicle,
+    startTime: LocalDateTime,
+    endTime: LocalDateTime
+)
+
+
+Floor
+-ParkingSpot
+
+-getAvailableSpots
+
+
+ParkingSpot
+- isOccupied
+- vehicle
+
+-park(Vehicle vehicle)
+-unPark(Vehicle vehicle)
+
+
+
+Vehicle
+-Number
+-VehicleSize
+
+
+Enum VehicleSize
+-small
+-medium
+-large
+
+
+ParkingTicket
+-ticketId
+-startTime
+-endTime
+-parkingSpot
+-vehicle
+
+-getStartTime()
+-getEndTime()
+-getParkingSpot()
+-getVehicle()
+
+
+
+ParkingDisplay
+-availbleSpots
+
+
+
+
+Payment
+-paymentId
+-amount
+

@@ -1,0 +1,48 @@
+Functional Requirements
+    The system should support sending notifications via EMAIL, SMS, and PUSH.
+    Each notification targets a single recipient and a specific channel.
+    The system should send notifications asynchronously.
+    If sending fails, the system should retry the operation a few times before giving up.
+    Notifications may contain a subject (optional) and a message body (mandatory).
+Non-Functional Requirements
+    The system should follow object-oriented design with clear separation of concerns.
+    It should be extensible, allowing future support for new notification types (e.g., WhatsApp, Slack).
+    Delivery should be non-blocking, using a thread pool to manage parallel sending.
+
+
+==== CLASS ====
+Notification
+- notificationId
+- recipient
+- notificationType
+- subject
+- message
+- status
+
+Enum NotificationType {
+    EMAIL,
+    SMS,
+    PUSH
+}
+
+
+Recipient
+- recipientId
+- email
+- phone
+
+
+NotificationChannelStatergy
+sendNotification(notification: Notification): boolean
+
+
+PushNotification implements NotificationChannelStatergy
+SMSNotification implements NotificationChannelStatergy
+EmailNotification implements NotificationChannelStatergy
+
+
+
+
+NotificationService
+- notificationChannelStatergy: NotificationChannelStatergy
+- sendNotification(notification: Notification): boolean

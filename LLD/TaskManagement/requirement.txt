@@ -1,0 +1,71 @@
+1.1 Functional Requirements
+Users can create, update, and delete tasks
+Tasks have a title, description, due date, priority, and status
+Tasks can have subtasks; parent tasks complete only when all subtasks are done
+Tasks can be assigned to users
+Tasks support tags for categorization
+Tasks can have comments
+The system should track activity history (creation, status changes, assignment changes)
+Users can filter tasks by status, priority, and assignee
+Tasks belong to task lists
+
+1.2 Non-Functional Requirements
+The design should follow object-oriented principles with clear separation of concerns
+The system should be modular and extensible to support future features
+The code should be thread-safe for concurrent access
+The components should be testable in isolation
+
+
+TaskManagementSystem
+
+
+User 
+- userId
+- name
+- email
+
+
+
+TaskList
+TaskListId
+List<Task> tasks
+
+
+Task
+TaskId
+parentTaskId
+title
+description
+due date
+priority
+status
+AssignedTo
+
+
+Tag
+- tagId
+- name
+
+Comment
+- commentId
+- timestamp
+- content
+- userId
+
+
+ActivityLog
+- activityId
+- taskId
+- action
+- timestamp
+- oldValue
+- newValue
+- actionedBy
+
+
+
+Enum TaskStatus
+TODO, INPROGRESS, BLOCKED, done
+
+Enum TaskPriority
+LOW, MEDIUM, HIGH, CRITICAL

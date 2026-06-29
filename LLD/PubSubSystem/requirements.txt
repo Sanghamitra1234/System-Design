@@ -1,0 +1,48 @@
+
+    Functional Requirements
+        Support creation and management of multiple topics
+        Allow multiple publishers to publish messages to a topic
+        Allow multiple subscribers to subscribe to one or more topics
+        Deliver messages to all active subscribers of a topic in the order they were published
+        Isolate delivery failures: an error delivering to one subscriber must not stop delivery to the others
+        Follow a "fire-and-forget" delivery model: no retries or acknowledgments
+    
+    Non-Functional Requirements
+        Modularity: The system should follow object-oriented principles with clear separation of responsibilities
+        Scalability: The system should efficiently support many concurrent publishers and subscribers
+        Extensibility: The design should be flexible enough to support future enhancements such as message persistence, retries, or delivery guarantees
+        Reliability: While exact delivery guarantees are not required, message ordering and dispatching must remain consistent and predictable within each topic
+
+
+PubSubSystemService
+
+
+
+
+interface subscriber
+notify
+
+AlertMessageSubscriber implements subscriber
+SMSSubscriber implements subscriber
+
+
+
+
+
+
+topic
+topicId
+List<Subscriber> subscribers
+
+addSubscriber
+removeSubscriber
+notifyMessage
+
+
+
+
+Message
+messageId
+topic
+content
+timestamp

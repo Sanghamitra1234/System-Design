@@ -1,0 +1,76 @@
+1) Board game with snakes and ladders numbered 1 to 100
+2) 2 players will be playing in turns
+3) Each player will have a dice to roll
+4) The player who reaches the end first wins
+5) The player who lands on a snake goes down
+6) The player who lands on a ladder goes up
+
+
+snakeAndLadder
+-Game
+
+play()
+
+
+Game
+-Board
+-Players
+-Dice
+-GameStatus
+-currentPlayer
+
+playTurn()
+isGameStarted()
+getGameStatus()
+isGameEnded()
+
+
+
+Board
+-Size
+-Cells
+-List<Snake>
+-List<Ladder>
+
+
+checkGameObject(int position)
+
+
+
+
+
+Cell
+-Position
+
+
+Player
+-name
+-currentPosition
+
+movePlayer()
+
+
+Dice 
+-Value
+
+rollDice()
+
+
+interface GameObjects 
+getDestination(int position)
+
+snake implements GameObjects
+
+getDestination(int position)
+
+
+ladder implements GameObjects
+
+getDestination(int position)
+
+enum GameStatus
+
+
+
+
+

@@ -1,0 +1,90 @@
+Functional Requirements
+1) Users can post questions, answers, and comments on both questions and answers
+2) Users can upvote or downvote questions and answers. A user can only vote once per post
+3) The original poster of a question can accept one answer as the solution
+4) A question can have one or more tags
+5) Users earn or lose reputation points based on upvotes/downvotes on their content and whether their answer is accepted
+6) Support searching for questions by keywords in the title or body and filtering questions by tags
+
+Non-Functional Requirements
+1) Consistency: Voting actions and reputation updates should be strongly consistent and reflected immediately.
+2) Concurrency: The system must gracefully handle high-concurrency scenarios, such as multiple users voting on the same post simultaneously.
+3) Scalability: The design should be scalable to accommodate a growing number of users, questions, and answers.
+
+StackOverFlowSystem
+HashMap<String, User> users
+HashMap<String, Question> questions
+HashMap<String, Answer> answers
+HashMap<String, Comment> comments
+HashMap<String, Vote> votes
+
+
+User
+-userId
+-name
+-emailid
+-reputationPoints
+-List<Question> questions
+
+
+
+questions
+- questionId
+- Author
+- title
+- content
+- List<Tag> tags
+- List<Vote> votes
+- AcceptedAnswer : Answer
+- List<Answer> answers
+
+
+
+answer
+- answerId
+- Author
+- content
+- List<Vote> votes
+- isAccepted
+
+
+comment
+- commentId
+- Author
+- content
+- List<Vote> votes
+- commentType (question/comment)
+
+
+vote
+- voteId
+- User
+- voteType (upvote/downvote)
+- timestamp
+
+
+Tag
+- tagId
+- name
+
+
+Enum voteType {
+    UPVOTE,
+    DOWNVOTE
+}
+
+Enum commentType {
+    QUESTION,
+    ANSWER
+}
+
+
+FilterQuestionStrategy (uses stratergy pattern for filtering questions)
+- filterQuestions()
+
+TagFilterQuestionStrategy
+- filterQuestions()
+
+TitleFilterQuestionStrategy
+- filterQuestions()
+

@@ -1,0 +1,74 @@
+Functional Requirements
+    Users can register with a name and email.
+    Users can add other users as friends (bidirectional friendship).
+    Users can create text-based posts.
+    Users can comment on posts.
+    Users can like posts.
+    Each user has a personalized feed showing posts from friends.
+    Users receive notifications when someone likes or comments on their post.
+Non-Functional Requirements
+    The system should follow object-oriented design principles with clean separation of concerns.
+    It should be modular and extensible to support future features like media content, reactions, and privacy controls.
+    The system should be designed for testability and maintainability.
+
+
+
+SocialNetworkService
+
+
+User
+-userId
+-name
+-emailid
+-List<string :userId> friends
+-List<string :postId> posts
+
+
+SocialContentService
+
+
+PostEventListener : interface
+void onPostLiked(Post post, User user);
+void onPostCommented(Post post, User user, Comment comment);
+
+
+NotificationService implements PostEventListener
+-notifyOnPostLiked(Post post, User user);
+-notifyOnPostCommented(Post post, User user, Comment comment);
+
+
+
+
+Post implements SocialContentEntity
+List<PostEventListener> listeners
+-postId
+-title
+-content
+-userId
+-timestamp
+-List<string :commentId> comments
+-List<string :likeId> likes
+
+
+Comment implements SocialContentEntity
+-commentId
+-userId
+-postId
+-content
+-timestamp
+
+
+Like
+-likeId
+-userId
+-postId
+-timestamp
+
+
+
+
+
+NewsFeedStratergy
+-showPost(userId)
+
+

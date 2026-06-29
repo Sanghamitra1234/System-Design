@@ -1,0 +1,58 @@
+Tic Tac Toe Game
+1) There will the 2 players
+2) The board will be of size 3x3
+3) There will be 2 symbols
+4) A scoreboard can be maintained.
+3) The players will take turns to make their move. The player who succeeds in placing three of their marks in a horizontal, vertical, or diagonal row wins the game.
+4) When all of the squares are full, the game is over. If no player has 3 of their marks in a line, then the game ends in a draw.
+
+
+Question 1: Requirements Clarification & Entity Identification
+
+Game class: Driver class
+Board class: Represents the game board
+Cell class: Represents a cell on the board
+Player class: Represents a player
+Symbol class: Represents a symbol (X or O)
+Scoreboard class: Represents the scoreboard
+
+
+
+
+Game
+GameStatus status;
+Board board;
+Player player1;
+Player player2;
+
+startGame()
+playTurn(Player player, int posx, int posy)
+checkGameStatus()
+
+
+
+Board
+List<Cell> cells; // use gRID
+
+board(int size)
+playMove(int posx, int posy, SymbolType symbol)
+checkWin(SymbolType symbol, int posx, int posy)
+isGameOver()
+isValidMove(int posx, int posy)
+
+
+
+Cell
+SymbolType symbol;
+int posx,posy;
+isEmpty()
+
+
+
+Player
+String name;
+SymbolType symbol;
+
+
+Enum SymbolType {X,O}
+Enum GameStatus {IN_PROGRESS, X_WON, O_WON,DRAW}
